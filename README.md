@@ -1,6 +1,7 @@
 # Quickstart - Python example app
 
 This is an example showing how to implement a chatbot using LanyingIM API and OpenAI API.
+This project runs with python 3.7
 
 ## Setup
 
@@ -11,13 +12,13 @@ This is an example showing how to implement a chatbot using LanyingIM API and Op
 3. Navigate into the project directory
 
    ```bash
-   $ cd lanying-chatbot-connector
+   $ cd lanying-connector
    ```
 
 4. Create a new virtual environment
 
    ```bash
-   $ python -m venv venv
+   $ python3 -m venv venv
    $ . venv/bin/activate
    ```
 
@@ -36,7 +37,7 @@ This is an example showing how to implement a chatbot using LanyingIM API and Op
 7. Add your [OPENAI API key](https://beta.openai.com/account/api-keys) to the newly created `.env` file,
 LANYING_USER_ID and LANYING_ADMIN_TOKEN also need to be set in `.env` file.
 
-8. Modify the OpenAI configuration file preset.json as needed.
+8. Modify the OpenAI configuration file configs/openai.json as needed.
 
 9. Run the app
 
