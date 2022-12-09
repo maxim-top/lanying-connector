@@ -1,5 +1,8 @@
 import openai
 import json
+import os
+
+openai.api_key = os.getenv("OPENAI_API_KEY")
 
 def handle_chat_message(content):
     with open("configs/openai.json", "r") as f:

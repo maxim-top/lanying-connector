@@ -1,22 +1,22 @@
 import os
 from flask import Flask, request, render_template
-import openai
 import requests
 import logging
 import json
 from concurrent.futures import ThreadPoolExecutor
-import importlib.machinery
+import importlib
+import sys
 
 logging.basicConfig(level=logging.DEBUG, format='%(asctime)s %(message)s', datefmt='%m/%d/%Y %I:%M:%S %p')
 executor = ThreadPoolExecutor(2)
 msgReceivedCnt = 0
 msgSentCnt = 0
 service = os.getenv('LANYING_CONNECTOR_SERVICE')
-service_module = importlib.machinery.SourceFileLoader("", f"services/{service}.py").load_module()
+sys.path.append("services")
+service_module = importlib.import_module(f"service_{service}")
 app = Flask(__name__)
 if os.environ.get("FLASK_DEBUG"):
     app.debug = True
-openai.api_key = os.getenv("OPENAI_API_KEY")
 
 @app.route("/", methods=["GET"])
 def index():
