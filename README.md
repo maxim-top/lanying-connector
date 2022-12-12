@@ -44,4 +44,4 @@ This project runs with python 3.7
    $ flask run
    ```
 
-You should now be able to access the app at [http://localhost:5000](http://localhost:5000)! 
+You should now be able to access the app at [http://127.0.0.1:5000](http://127.0.0.1:5000)!
