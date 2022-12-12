@@ -13,7 +13,10 @@ msgReceivedCnt = 0
 msgSentCnt = 0
 service = os.getenv('LANYING_CONNECTOR_SERVICE')
 sys.path.append("services")
-service_module = importlib.import_module(f"service_{service}")
+service_module = importlib.import_module(f"{service}_service")
+with open(f"configs/{service}.json", "r") as f:
+     config = json.load(f)
+     service_module.init(config)
 app = Flask(__name__)
 if os.environ.get("FLASK_DEBUG"):
     app.debug = True

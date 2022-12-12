@@ -1,9 +1,8 @@
 import openai
-import json
 import os
 
-with open("configs/openai.json", "r") as f:
-    config = json.load(f)
+def init(config):
+    global preset, prompt
     if(config['openai_api_key'] != ""):
         openai.api_key = config['openai_api_key']
     else:
