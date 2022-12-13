@@ -6,23 +6,22 @@ import json
 from concurrent.futures import ThreadPoolExecutor
 import importlib
 import sys
+import lanying_config
+import copy
 
 logging.basicConfig(level=logging.DEBUG, format='%(asctime)s %(message)s', datefmt='%m/%d/%Y %I:%M:%S %p')
 executor = ThreadPoolExecutor(2)
 msgReceivedCnt = 0
 msgSentCnt = 0
-service = os.getenv('LANYING_CONNECTOR_SERVICE')
 sys.path.append("services")
-service_module = importlib.import_module(f"{service}_service")
-with open(f"configs/{service}.json", "r") as f:
-     config = json.load(f)
-     service_module.init(config)
+lanying_config.init()
 app = Flask(__name__)
 if os.environ.get("FLASK_DEBUG"):
     app.debug = True
 
 @app.route("/", methods=["GET"])
 def index():
+    service = lanying_config.get_lanying_connector_service('')
     return render_template("index.html", msgReceivedCnt=msgReceivedCnt, msgSentCnt=msgSentCnt, service=service)
 
 @app.route("/messages", methods=["POST"])
@@ -36,31 +35,40 @@ def messages():
     toUserId = data['to']['uid']
     type = data['type']
     ctype = data['ctype']
-    myUserId = os.getenv('LANYING_USER_ID')
-    if toUserId == myUserId and fromUserId != myUserId and type == 'CHAT' and ctype == 'TEXT':
+    appId = data['appId']
+    myUserId = lanying_config.get_lanying_user_id(appId)
+    logging.debug(f'lanying_user_id:{myUserId}')
+    if myUserId != None and toUserId == myUserId and fromUserId != myUserId and type == 'CHAT' and ctype == 'TEXT':
         executor.submit(queryAndSendMessage, data)
     resp = app.make_response('')
     return resp
 
 def queryAndSendMessage(data):
     global msgSentCnt
-    global service
     appId = data['appId']
     fromUserId = data['from']['uid']
     toUserId = data['to']['uid']
     content = data['content']
     try:
-        responseText = service_module.handle_chat_message(content)
-        logging.debug(responseText)
-        sendMessage(appId, fromUserId, toUserId, responseText)
-        msgSentCnt+=1
+        service = lanying_config.get_lanying_connector_service(appId)
+        if service:
+            service_module = importlib.import_module(f"{service}_service")
+            config = lanying_config.get_lanying_connector(appId)
+            if config:
+                responseText = service_module.handle_chat_message(content, copy.deepcopy(config))
+                logging.debug(responseText)
+                sendMessage(appId, fromUserId, toUserId, responseText)
+                msgSentCnt+=1
     except Exception as e:
         logging.error(e)
-        sendMessage(appId, fromUserId, toUserId, os.getenv("LANYING_CONNECTOR_404_REPLY_MESSAGE", "抱歉，因为某些无法说明的原因，我暂时无法回答你的问题。"))
+        message_404 = lanying_config.get_message_404(appId)
+        sendMessage(appId, fromUserId, toUserId, message_404)
         msgSentCnt+=1
 
 def sendMessage(appId, fromUserId, toUserId, content):
-    sendResponse = requests.post('https://s-1-3-api.maximtop.cn/message/send',
-                                headers={'app_id': appId, 'access-token': os.getenv("LANYING_ADMIN_TOKEN")},
-                                json={'type':1, 'from_user_id':toUserId,'targets':[fromUserId],'content_type':0, 'content': content})
-    logging.debug(sendResponse)
+    adminToken = lanying_config.get_lanying_admin_token(appId)
+    if adminToken:
+        sendResponse = requests.post('https://s-1-3-api.maximtop.cn/message/send',
+                                    headers={'app_id': appId, 'access-token': adminToken},
+                                    json={'type':1, 'from_user_id':toUserId,'targets':[fromUserId],'content_type':0, 'content': content})
+        logging.debug(sendResponse)
