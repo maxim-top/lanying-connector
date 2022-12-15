@@ -67,8 +67,9 @@ def queryAndSendMessage(data):
 
 def sendMessage(appId, fromUserId, toUserId, content):
     adminToken = lanying_config.get_lanying_admin_token(appId)
+    apiEndpoint = lanying_config.get_lanying_api_endpoint(appId)
     if adminToken:
-        sendResponse = requests.post('https://s-1-3-api.maximtop.cn/message/send',
+        sendResponse = requests.post(apiEndpoint + '/message/send',
                                     headers={'app_id': appId, 'access-token': adminToken},
                                     json={'type':1, 'from_user_id':toUserId,'targets':[fromUserId],'content_type':0, 'content': content})
         logging.debug(sendResponse)

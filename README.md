@@ -34,7 +34,7 @@ This project runs with python 3.7
    $ cp .env.example .env
    ```
 
-7. In the newly created `.env` file, set LANYING_USER_ID to the user ID of the LanyingIM chatbot, set LANYING_ADMIN_TOKEN to the LanyingIM administrator Token, and set LANYING_CONNECTOR_SERVICE to the selected service. The current possible value is openai.
+7. In the newly created `.env` file, set LANYING_USER_ID to the user ID of the LanyingIM chatbot, set LANYING_ADMIN_TOKEN to the LanyingIM administrator Token, and set LANYING_CONNECTOR_SERVICE to the selected service. The current possible value is openai. Set LANYING_API_ENDPOINT to real api endpoint if your app is in private cloud.
 
 8. If LANYING_CONNECTOR_SERVICE is set to openai, modify the OpenAI configuration file configs/openai.json , the `openai_api_key` field must be set to your [OPENAI API key](https://beta.openai.com/account/api-keys).
 
