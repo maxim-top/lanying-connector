@@ -12,7 +12,7 @@
 
 [Python 3.7](https://www.python.org/downloads/)
 
-## 安装与运行
+### 安装与运行
 
 1. 克隆本工程并进入工程目录
    ```bash
