@@ -38,14 +38,18 @@
    $ cp .env.example .env
    ```
    其中：
-   LANYING_USER_ID 是提供蓝莺IM Chatbot服务的用户ID；
-   LANYING_ADMIN_TOKEN 是蓝莺IM[管理员Token](https://console.lanyingim.com/#/home/token);
-   LANYING_CONNECTOR_SERVICE 选择交互引擎，这里默认是 openai；
-   LANYING_API_ENDPOINT 仅私有云需要，是App所在API服务的地址。可从蓝莺IM控制台"应用信息"页面获取;
+   
+   ```LANYING_USER_ID``` 是提供Chatbot服务的用户ID；
+   
+   ```LANYING_ADMIN_TOKEN``` 是蓝莺IM[管理员Token](https://console.lanyingim.com/#/home/token);
+   
+   ```LANYING_CONNECTOR_SERVICE``` 选择交互引擎，这里默认是 openai;
+   
+   ```LANYING_API_ENDPOINT``` 仅私有云需要，是应用所在API服务的地址，可从蓝莺IM控制台"应用信息"页面获取;
 
 5. 配置服务
    
-   如果 LANYING_CONNECTOR_SERVICE 选择了 openai，就对应修改 configs/openai.json 对其进行配置,
+   如果```LANYING_CONNECTOR_SERVICE```选择了 openai，就对应修改 configs/openai.json 对其进行配置,
    具体配置可参照[OpenAI文档](https://beta.openai.com/docs/api-reference/authentication)。
 
 6. 运行
