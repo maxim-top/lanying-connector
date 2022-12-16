@@ -4,7 +4,7 @@
 
 蓝莺IM，是由[美信拓扑](https://www.lanyingim.com/)团队研发的新一代即时通讯云服务，SDK设计简单集成方便，服务采用云原生技术和多云架构，私有云也可按月付费。
 
-当前已有模板:
+当前已有模板（欢迎补充&PR）:
 
 1. openai: 通过调用[OpenAI API](https://beta.openai.com)来实现一个InstructGPT Chatbot。
 
