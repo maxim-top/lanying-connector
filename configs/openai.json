@@ -2,7 +2,7 @@
     "openai_api_key" :"",
     "preset": {
         "model": "text-davinci-003",
-        "prompt": "Human:{{LANYING_MESSAGE_CONTENT}}\nAI:",
+        "prompt": "",
         "temperature": 0.9,
         "max_tokens": 2048,
         "top_p": 1,

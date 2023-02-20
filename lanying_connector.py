@@ -55,7 +55,9 @@ def queryAndSendMessage(data):
             service_module = importlib.import_module(f"{service}_service")
             config = lanying_config.get_lanying_connector(appId)
             if config:
-                responseText = service_module.handle_chat_message(content, copy.deepcopy(config))
+                newConfig = copy.deepcopy(config)
+                newConfig['from_user_id'] = fromUserId
+                responseText = service_module.handle_chat_message(content, newConfig)
                 logging.debug(responseText)
                 sendMessage(appId, fromUserId, toUserId, responseText)
                 msgSentCnt+=1
