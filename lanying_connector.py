@@ -58,11 +58,11 @@ def queryAndSendMessage(data):
                 newConfig = copy.deepcopy(config)
                 newConfig['from_user_id'] = fromUserId
                 responseText = service_module.handle_chat_message(content, newConfig)
-                logging.debug(responseText)
+                logging.debug(f"responseText:{responseText}")
                 sendMessage(appId, fromUserId, toUserId, responseText)
                 msgSentCnt+=1
     except Exception as e:
-        logging.error(e)
+        logging.error(f"Error:{e}")
         message_404 = lanying_config.get_message_404(appId)
         sendMessage(appId, fromUserId, toUserId, message_404)
         msgSentCnt+=1

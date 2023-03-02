@@ -3,10 +3,19 @@ import time
 import logging
 
 historyList = []
+historyListChatGPT = []
 expireSeconds = 600
 maxPromptSize = 1500
 
 def handle_chat_message(content, config):
+    preset = config['preset']
+    isChatGPT = preset['model'].startswith("gpt-3.5")
+    if isChatGPT:
+        return handle_chat_message_chatgpt(content, config)
+    else:
+        return handle_chat_message_gpt3(content, config)
+
+def handle_chat_message_gpt3(content, config):
     openai.api_key = config['openai_api_key']
     preset = config['preset']
     prompt = preset['prompt']
@@ -34,6 +43,27 @@ def handle_chat_message(content, config):
         historyList.append(history)
     return reply
 
+def handle_chat_message_chatgpt(content, config):
+    openai.api_key = config['openai_api_key']
+    preset = config['preset']
+    messages = preset['messages']
+    now = int(time.time())
+    history = {'time':now}
+    fromUserId = config['from_user_id']
+    userHistoryList = loadHistoryChatGPT(fromUserId, content, messages, now)
+    logging.debug(f'userHistoryList:{userHistoryList}')
+    messages.extend(userHistoryList)
+    messages.append({"role": "user", "content": content})
+    preset['messages'] = messages
+    response = openai.ChatCompletion.create(**preset)
+    logging.debug(f"openai response:{response}")
+    reply = response.choices[0].message.content.strip()
+    history['user'] = content
+    history['assistant'] = reply
+    history['uid'] = fromUserId
+    historyListChatGPT.append(history)
+    return reply
+
 def loadHistory(uid, content, prompt, now):
     uidHistoryList = []
     nowSize = len(content) + len(prompt)
@@ -51,3 +81,26 @@ def loadHistory(uid, content, prompt, now):
         else:
             break
     return res
+
+def loadHistoryChatGPT(uid, content, messages, now):
+    uidHistoryList = []
+    messagesSize = 0
+    for message in messages:
+        messagesSize += len('user') + len(message['user']) + len('assistant') + len(message['assistant'])
+    nowSize = len(content) + messagesSize
+    for history in historyListChatGPT[:]:
+        if history['time'] < now - expireSeconds:
+            historyListChatGPT.remove(history)
+        elif history['uid'] == uid:
+            uidHistoryList.append(history)
+    res = []
+    for history in reversed(uidHistoryList):
+        historySize = len('user') + len(history['user']) + len('assistant') + len(history['assistant'])
+        if len(res) == 0 or nowSize + historySize < maxPromptSize:
+            res.append({'role':'assistant', 'content': history['assistant']})
+            res.append({'role':'user', 'content': history['user']})
+            nowSize += historySize
+            logging.debug(f'resLen:{len(res)}, nowSize:{nowSize}')
+        else:
+            break
+    return reversed(res)

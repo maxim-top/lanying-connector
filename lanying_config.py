@@ -9,7 +9,6 @@ mode = 'env'
 
 def key_changed(watch_response):
     for event in watch_response.events:
-        logging.debug(event)
         if isinstance(event, etcd3.events.PutEvent):
             configs[event.key.decode("utf-8") ] = parse_value(event.value)
         elif isinstance(event, etcd3.events.DeleteEvent):
