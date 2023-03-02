@@ -62,7 +62,7 @@ def queryAndSendMessage(data):
                 sendMessage(appId, fromUserId, toUserId, responseText)
                 msgSentCnt+=1
     except Exception as e:
-        logging.error(f"Error:{e}")
+        logging.exception(e)
         message_404 = lanying_config.get_message_404(appId)
         sendMessage(appId, fromUserId, toUserId, message_404)
         msgSentCnt+=1

@@ -4,8 +4,8 @@ import logging
 
 historyList = []
 historyListChatGPT = []
-expireSeconds = 600
-maxPromptSize = 1500
+expireSeconds = 86400 * 3
+maxPromptSize = 2000
 
 def handle_chat_message(content, config):
     preset = config['preset']
@@ -46,13 +46,14 @@ def handle_chat_message_gpt3(content, config):
 def handle_chat_message_chatgpt(content, config):
     openai.api_key = config['openai_api_key']
     preset = config['preset']
-    messages = preset['messages']
+    messages = preset.get('messages',[])
     now = int(time.time())
     history = {'time':now}
     fromUserId = config['from_user_id']
     userHistoryList = loadHistoryChatGPT(fromUserId, content, messages, now)
-    logging.debug(f'userHistoryList:{userHistoryList}')
-    messages.extend(userHistoryList)
+    for userHistory in userHistoryList:
+        logging.debug(f'userHistory:{userHistory}')
+        messages.append(userHistory)
     messages.append({"role": "user", "content": content})
     preset['messages'] = messages
     response = openai.ChatCompletion.create(**preset)
@@ -86,7 +87,7 @@ def loadHistoryChatGPT(uid, content, messages, now):
     uidHistoryList = []
     messagesSize = 0
     for message in messages:
-        messagesSize += len('user') + len(message['user']) + len('assistant') + len(message['assistant'])
+        messagesSize += len(message['role']) + len(message['content'])
     nowSize = len(content) + messagesSize
     for history in historyListChatGPT[:]:
         if history['time'] < now - expireSeconds:
@@ -95,7 +96,7 @@ def loadHistoryChatGPT(uid, content, messages, now):
             uidHistoryList.append(history)
     res = []
     for history in reversed(uidHistoryList):
-        historySize = len('user') + len(history['user']) + len('assistant') + len(history['assistant'])
+        historySize = len(history['user']) + len(history['assistant'])
         if len(res) == 0 or nowSize + historySize < maxPromptSize:
             res.append({'role':'assistant', 'content': history['assistant']})
             res.append({'role':'user', 'content': history['user']})
