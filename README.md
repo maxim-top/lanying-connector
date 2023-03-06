@@ -6,7 +6,7 @@
 
 当前已有模板（欢迎补充&PR）:
 
-1. openai: 通过调用[OpenAI API](https://beta.openai.com)来实现一个InstructGPT Chatbot。
+1. openai: 通过调用[OpenAI API](https://beta.openai.com)来实现一个ChatGPT Chatbot。
 
 ### 系统要求
 
