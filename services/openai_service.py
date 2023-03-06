@@ -1,11 +1,11 @@
 import openai
 import time
 import logging
-
-historyList = []
-historyListChatGPT = []
+import lanying_connector
+import json
 expireSeconds = 86400 * 3
 maxPromptSize = 2000
+maxUserHistoryLen = 20
 
 def handle_chat_message(content, config):
     preset = config['preset']
@@ -22,7 +22,10 @@ def handle_chat_message_gpt3(content, config):
     now = int(time.time())
     history = {'time':now}
     fromUserId = config['from_user_id']
-    historyText = loadHistory(fromUserId, content, preset['prompt'], now)
+    toUserId = config['to_user_id']
+    historyListKey = historyListGPT3Key(fromUserId, toUserId)
+    redis = lanying_connector.getRedisConnection()
+    historyText = loadHistory(redis, historyListKey, content, preset['prompt'], now)
     logging.debug(f'historyText:{historyText}')
     if prompt.find('{{LANYING_MESSAGE_CONTENT}}') > 0:
         preset['prompt'] = prompt.replace('{{LANYING_MESSAGE_CONTENT}}', content)
@@ -40,7 +43,7 @@ def handle_chat_message_gpt3(content, config):
     if 'text' in history:
         history['text'] = history['text'] + reply + "\n\n"
         history['uid'] = fromUserId
-        historyList.append(history)
+        addHistory(redis, historyListKey, history)
     return reply
 
 def handle_chat_message_chatgpt(content, config):
@@ -50,7 +53,10 @@ def handle_chat_message_chatgpt(content, config):
     now = int(time.time())
     history = {'time':now}
     fromUserId = config['from_user_id']
-    userHistoryList = loadHistoryChatGPT(fromUserId, content, messages, now)
+    toUserId = config['to_user_id']
+    historyListKey = historyListChatGPTKey(fromUserId, toUserId)
+    redis = lanying_connector.getRedisConnection()
+    userHistoryList = loadHistoryChatGPT(redis, historyListKey, content, messages, now)
     for userHistory in userHistoryList:
         logging.debug(f'userHistory:{userHistory}')
         messages.append(userHistory)
@@ -62,16 +68,17 @@ def handle_chat_message_chatgpt(content, config):
     history['user'] = content
     history['assistant'] = reply
     history['uid'] = fromUserId
-    historyListChatGPT.append(history)
+    addHistory(redis, historyListKey, history)
     return reply
 
-def loadHistory(uid, content, prompt, now):
+def loadHistory(redis, historyListKey, content, prompt, now):
     uidHistoryList = []
     nowSize = len(content) + len(prompt)
-    for history in historyList[:]:
-        if history['time'] < now - expireSeconds:
-            historyList.remove(history)
-        elif history['uid'] == uid:
+    if redis:
+        for historyStr in getHistoryList(redis, historyListKey):
+            history = json.loads(historyStr)
+            if history['time'] < now - expireSeconds:
+                removeHistory(redis, historyListKey, historyStr)
             uidHistoryList.append(history)
     res = ""
     for history in reversed(uidHistoryList):
@@ -83,16 +90,17 @@ def loadHistory(uid, content, prompt, now):
             break
     return res
 
-def loadHistoryChatGPT(uid, content, messages, now):
+def loadHistoryChatGPT(redis, historyListKey, content, messages, now):
     uidHistoryList = []
     messagesSize = 0
     for message in messages:
         messagesSize += len(message['role']) + len(message['content'])
     nowSize = len(content) + messagesSize
-    for history in historyListChatGPT[:]:
-        if history['time'] < now - expireSeconds:
-            historyListChatGPT.remove(history)
-        elif history['uid'] == uid:
+    if redis:
+        for historyStr in getHistoryList(redis, historyListKey):
+            history = json.loads(historyStr)
+            if history['time'] < now - expireSeconds:
+                removeHistory(redis, historyListKey, historyStr)
             uidHistoryList.append(history)
     res = []
     for history in reversed(uidHistoryList):
@@ -105,3 +113,25 @@ def loadHistoryChatGPT(uid, content, messages, now):
         else:
             break
     return reversed(res)
+
+def historyListChatGPTKey(fromUserId, toUserId):
+    return "lanying:connector:history:list:chatGPT:" + fromUserId + ":" + toUserId
+
+def historyListGPT3Key(fromUserId, toUserId):
+    return "lanying:connector:history:list:gpt3" + fromUserId + ":" + toUserId
+
+def addHistory(redis, historyListKey, history):
+    if redis:
+        Count = redis.rpush(historyListKey, json.dumps(history))
+        redis.expire(historyListKey, expireSeconds)
+        if Count > maxUserHistoryLen:
+            redis.lpop(historyListKey)
+
+def getHistoryList(redis, historyListKey):
+    if redis:
+        return redis.lrange(historyListKey, 0, -1)
+    return []
+
+def removeHistory(redis, historyListKey, historyStr):
+    if redis:
+        redis.lrem(historyListKey, 1, historyStr)

@@ -8,26 +8,29 @@ import importlib
 import sys
 import lanying_config
 import copy
+from redis import StrictRedis, ConnectionPool
 
 logging.basicConfig(level=logging.DEBUG, format='%(asctime)s %(message)s', datefmt='%m/%d/%Y %I:%M:%S %p')
 executor = ThreadPoolExecutor(2)
-msgReceivedCnt = 0
-msgSentCnt = 0
 sys.path.append("services")
 lanying_config.init()
 app = Flask(__name__)
 if os.environ.get("FLASK_DEBUG"):
     app.debug = True
 
+redisServer = os.getenv('LANYING_CONNECTOR_REDIS_SERVER')
+redisPool = None
+if redisServer:
+    redisPool = ConnectionPool.from_url(redisServer)
+
 @app.route("/", methods=["GET"])
 def index():
     service = lanying_config.get_lanying_connector_service('')
-    return render_template("index.html", msgReceivedCnt=msgReceivedCnt, msgSentCnt=msgSentCnt, service=service)
+    return render_template("index.html", msgReceivedCnt=getMsgReceivedCnt(), msgSentCnt=getMsgSentCnt(), service=service)
 
 @app.route("/messages", methods=["POST"])
 def messages():
-    global msgReceivedCnt
-    msgReceivedCnt += 1
+    addMsgReceivedCnt(1)
     text = request.get_data(as_text=True)
     data = json.loads(text)
     logging.debug(data)
@@ -44,7 +47,6 @@ def messages():
     return resp
 
 def queryAndSendMessage(data):
-    global msgSentCnt
     appId = data['appId']
     fromUserId = data['from']['uid']
     toUserId = data['to']['uid']
@@ -57,15 +59,16 @@ def queryAndSendMessage(data):
             if config:
                 newConfig = copy.deepcopy(config)
                 newConfig['from_user_id'] = fromUserId
+                newConfig['to_user_id'] = toUserId
                 responseText = service_module.handle_chat_message(content, newConfig)
                 logging.debug(f"responseText:{responseText}")
                 sendMessage(appId, fromUserId, toUserId, responseText)
-                msgSentCnt+=1
+                addMsgSentCnt(1)
     except Exception as e:
         logging.exception(e)
         message_404 = lanying_config.get_message_404(appId)
         sendMessage(appId, fromUserId, toUserId, message_404)
-        msgSentCnt+=1
+        addMsgSentCnt(1)
 
 def sendMessage(appId, fromUserId, toUserId, content):
     adminToken = lanying_config.get_lanying_admin_token(appId)
@@ -75,3 +78,40 @@ def sendMessage(appId, fromUserId, toUserId, content):
                                     headers={'app_id': appId, 'access-token': adminToken},
                                     json={'type':1, 'from_user_id':toUserId,'targets':[fromUserId],'content_type':0, 'content': content})
         logging.debug(sendResponse)
+
+def getRedisConnection():
+    if redisPool:
+        return StrictRedis(connection_pool=redisPool)
+    return None
+
+def addMsgSentCnt(num):
+    redis = getRedisConnection()
+    if redis:
+        redis.incrby(msgSentCntKey(), num)
+
+def addMsgReceivedCnt(num):
+    redis = getRedisConnection()
+    if redis:
+        redis.incrby(msgReceivedCntKey(), num)
+
+def getMsgSentCnt():
+    redis = getRedisConnection()
+    if redis:
+        str = redis.get(msgSentCntKey())
+        if str:
+            return int(str)
+    return 0
+
+def getMsgReceivedCnt():
+    redis = getRedisConnection()
+    if redis:
+        str = redis.get(msgReceivedCntKey())
+        if str:
+            return int(str)
+    return 0
+
+def msgSentCntKey():
+    return "lanying:connector:msg:sent:cnt"
+
+def msgReceivedCntKey():
+    return "lanying:connector:msg:received:cnt"

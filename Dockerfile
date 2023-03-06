@@ -13,4 +13,4 @@ COPY configs configs
 COPY templates templates
 EXPOSE 8000
 
-CMD [ "gunicorn", "--workers=1", "--threads=10", "--worker-class=gthread", "lanying_connector:app"]
+CMD [ "gunicorn", "--workers=5", "--threads=10", "--worker-class=gthread", "lanying_connector:app"]
