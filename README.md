@@ -6,7 +6,8 @@
 
 当前已有模板（欢迎补充&PR）:
 
-1. openai: 通过调用[OpenAI API](https://beta.openai.com)来实现一个ChatGPT Chatbot。
+1. openai：通过调用[OpenAI API](https://beta.openai.com)来实现一个ChatGPT Chatbot。
+2. openai-xiaolan：蓝莺IM中的小蓝AI设置，仅为演示智能客服功能用；
 
 ### 系统要求
 
