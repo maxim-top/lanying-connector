@@ -47,6 +47,8 @@
    
    ```LANYING_API_ENDPOINT``` 仅私有云需要，是应用所在API服务的地址，可从蓝莺IM控制台"应用信息"页面获取;
 
+   ```LANYING_CONNECTOR_REDIS_SERVER``` redis的地址， 格式如：redis://:@redis:6379/0
+
 5. 配置服务
    
    如果```LANYING_CONNECTOR_SERVICE```选择了 openai，就对应修改 configs/openai.json 对其进行配置,
