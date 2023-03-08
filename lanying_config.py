@@ -6,6 +6,7 @@ import os
 prefix = os.getenv('LANYING_CONNECTOR_APP_CONFIG_PREFIX')
 configs = {}
 mode = 'env'
+etcd = None
 
 def key_changed(watch_response):
     for event in watch_response.events:
@@ -19,6 +20,7 @@ def init():
     etcdPort = os.getenv('LANYING_CONNECTOR_ETCD_PORT')
     if etcdServer != None and etcdPort != None:
         global mode
+        global etcd
         mode = 'etcd'
         etcd = etcd3.client(host = etcdServer, port=etcdPort)
         for (value, meta) in etcd.get_prefix(prefix):
@@ -33,6 +35,11 @@ def parse_value(value):
 
 def get_config(appId, key, default):
     return configs.get(prefix + appId + '.'+key, default)
+
+def save_config(appId, key, value):
+    global etcd
+    if etcd:
+        etcd.put(prefix + appId + '.'+key, value)
 
 def get_config_field(appId, key, field, default):
     value = configs.get(prefix + appId + '.'+key)

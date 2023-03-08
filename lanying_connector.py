@@ -11,7 +11,7 @@ import copy
 from redis import StrictRedis, ConnectionPool
 
 logging.basicConfig(level=logging.DEBUG, format='%(asctime)s %(message)s', datefmt='%m/%d/%Y %I:%M:%S %p')
-executor = ThreadPoolExecutor(2)
+executor = ThreadPoolExecutor(8)
 sys.path.append("services")
 lanying_config.init()
 app = Flask(__name__)
@@ -22,6 +22,8 @@ redisServer = os.getenv('LANYING_CONNECTOR_REDIS_SERVER')
 redisPool = None
 if redisServer:
     redisPool = ConnectionPool.from_url(redisServer)
+
+accessToken = os.getenv('LANYING_CONNECTOR_ACCESS_TOKEN')
 
 @app.route("/", methods=["GET"])
 def index():
@@ -44,6 +46,20 @@ def messages():
     if myUserId != None and toUserId == myUserId and fromUserId != myUserId and type == 'CHAT' and ctype == 'TEXT':
         executor.submit(queryAndSendMessage, data)
     resp = app.make_response('')
+    return resp
+
+@app.route("/config", methods=["POST"])
+def saveConfig():
+    headerToken = request.headers.get('access-token', "")
+    if accessToken and accessToken == headerToken:
+        text = request.get_data(as_text=True)
+        data = json.loads(text)
+        appId = data['app_id']
+        value = data['value']
+        lanying_config.save_config(appId, 'lanying_connector', value)
+        resp = app.make_response('success')
+        return resp
+    resp = app.make_response('fail')
     return resp
 
 def queryAndSendMessage(data):
@@ -80,9 +96,12 @@ def sendMessage(appId, fromUserId, toUserId, content):
         logging.debug(sendResponse)
 
 def getRedisConnection():
+    conn = None
     if redisPool:
-        return StrictRedis(connection_pool=redisPool)
-    return None
+        conn = StrictRedis(connection_pool=redisPool)
+    if not conn:
+        logging.warning(f"getRedisConnection: fail to get connection")
+    return conn
 
 def addMsgSentCnt(num):
     redis = getRedisConnection()
