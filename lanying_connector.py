@@ -62,6 +62,16 @@ def saveConfig():
     resp = app.make_response('fail')
     return resp
 
+@app.route("/config", methods=["GET"])
+def getConfig():
+    showConfigAppId = os.getenv('LANYING_CONNECTOR_SHOW_CONFIG_APP_ID')
+    if showConfigAppId:
+        config = lanying_config.get_lanying_connector(showConfigAppId)
+        resp = app.make_response(json.dumps(config['preset']['messages'], ensure_ascii=False))
+        return resp
+    resp = app.make_response('')
+    return resp
+
 def queryAndSendMessage(data):
     appId = data['appId']
     fromUserId = data['from']['uid']
