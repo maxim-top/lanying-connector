@@ -82,7 +82,7 @@ def loadHistory(redis, historyListKey, content, prompt, now):
             uidHistoryList.append(history)
     res = ""
     for history in reversed(uidHistoryList):
-        if res == "" or nowSize + len(history['text']) < maxPromptSize:
+        if nowSize + len(history['text']) < maxPromptSize:
             res = history['text'] + res
             nowSize += len(history['text'])
             logging.debug(f'resLen:{len(res)}, nowSize:{nowSize}')
@@ -105,7 +105,7 @@ def loadHistoryChatGPT(redis, historyListKey, content, messages, now):
     res = []
     for history in reversed(uidHistoryList):
         historySize = len(history['user']) + len(history['assistant'])
-        if len(res) == 0 or nowSize + historySize < maxPromptSize:
+        if nowSize + historySize < maxPromptSize:
             res.append({'role':'assistant', 'content': history['assistant']})
             res.append({'role':'user', 'content': history['user']})
             nowSize += historySize
