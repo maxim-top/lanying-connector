@@ -75,6 +75,11 @@ def get_lanying_admin_token(appId):
         return get_config_field(appId, 'lanying_connector', 'lanying_admin_token', None)
     return os.getenv('LANYING_ADMIN_TOKEN')
 
+def get_lanying_callback_signature(appId):
+    if mode == 'etcd':
+         return get_config_field(appId, 'lanying_connector', 'lanying_callback_signature', None)
+    return os.getenv('LANYING_CALLBACK_SIGNATURE')
+
 def get_lanying_connector(appId):
     if mode == 'etcd':
         return get_config(appId, 'lanying_connector', None)

@@ -41,6 +41,13 @@ def messages():
     type = data['type']
     ctype = data['ctype']
     appId = data['appId']
+    callbackSignature = lanying_config.get_lanying_callback_signature(appId)
+    if callbackSignature and len(callbackSignature) > 0:
+        headSignature = request.headers.get('signature')
+        if callbackSignature != headSignature:
+            logging.info(f'callback signature not match: appId={appId}')
+            resp = app.make_response('callback signature not match')
+            return resp
     myUserId = lanying_config.get_lanying_user_id(appId)
     logging.debug(f'lanying_user_id:{myUserId}')
     if myUserId != None and toUserId == myUserId and fromUserId != myUserId and type == 'CHAT' and ctype == 'TEXT':
