@@ -65,6 +65,11 @@ def get_message_404(appId):
         return get_config_field(appId, 'lanying_connector', 'lanying_connector_message_404', "抱歉，因为某些无法说明的原因，我暂时无法回答你的问题。")
     return os.getenv('LANYING_CONNECTOR_MESSAGE_404')
 
+def get_message_antispam(appId):
+    if mode == 'etcd':
+        return get_config_field(appId, 'lanying_connector', 'lanying_connector_message_antispam', "对不起，因为系统设定的原因，这个问题我无法回答，请您谅解。")
+    return os.getenv('LANYING_CONNECTOR_MESSAGE_ANTISPAM')
+
 def get_lanying_admin_token(appId):
     if mode == 'etcd':
         return get_config_field(appId, 'lanying_connector', 'lanying_admin_token', None)
