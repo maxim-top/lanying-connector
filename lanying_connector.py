@@ -9,6 +9,7 @@ import sys
 import lanying_config
 import copy
 from redis import StrictRedis, ConnectionPool
+import time
 
 logging.basicConfig(level=logging.DEBUG, format='%(asctime)s %(message)s', datefmt='%m/%d/%Y %I:%M:%S %p')
 executor = ThreadPoolExecutor(8)
@@ -41,6 +42,12 @@ def messages():
     type = data['type']
     ctype = data['ctype']
     appId = data['appId']
+    now = time.time()
+    ExpireTime = lanying_config.get_lanying_connector_expire_time(appId)
+    if ExpireTime == None or (ExpireTime > 0 and now > ExpireTime):
+        logging.debug(f"service is expired: appId={appId}")
+        resp = app.make_response('service is expired')
+        return resp
     callbackSignature = lanying_config.get_lanying_callback_signature(appId)
     if callbackSignature and len(callbackSignature) > 0:
         headSignature = request.headers.get('signature')
@@ -62,10 +69,15 @@ def saveConfig():
         text = request.get_data(as_text=True)
         data = json.loads(text)
         appId = data['app_id']
+        key = data.get('key', 'lanying_connector')
         value = data['value']
-        lanying_config.save_config(appId, 'lanying_connector', value)
-        resp = app.make_response('success')
-        return resp
+        if key.startswith('lanying_connector'):
+            lanying_config.save_config(appId, key, value)
+            resp = app.make_response('success')
+            return resp
+        else:
+            resp = app.make_response('not_allowed')
+            return resp
     resp = app.make_response('fail')
     return resp
 

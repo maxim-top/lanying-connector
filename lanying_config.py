@@ -80,6 +80,11 @@ def get_lanying_callback_signature(appId):
          return get_config_field(appId, 'lanying_connector', 'lanying_callback_signature', None)
     return os.getenv('LANYING_CALLBACK_SIGNATURE')
 
+def get_lanying_connector_expire_time(appId):
+    if mode == 'etcd':
+        return get_config(appId, 'lanying_connector.expire_time', None)
+    return -1
+
 def get_lanying_connector(appId):
     if mode == 'etcd':
         return get_config(appId, 'lanying_connector', None)
