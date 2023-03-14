@@ -105,6 +105,7 @@ def queryAndSendMessage(data):
                 newConfig = copy.deepcopy(config)
                 newConfig['from_user_id'] = fromUserId
                 newConfig['to_user_id'] = toUserId
+                newConfig['ext'] = data['ext']
                 responseText = service_module.handle_chat_message(content, newConfig)
                 logging.debug(f"responseText:{responseText}")
                 sendMessage(appId, fromUserId, toUserId, responseText)

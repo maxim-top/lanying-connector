@@ -9,15 +9,22 @@ maxUserHistoryLen = 20
 
 def handle_chat_message(content, config):
     preset = config['preset']
+    lcExt = {}
+    try:
+        ext = json.loads(config['ext'])
+        lcExt = ext['lanying-connector']
+        if lcExt['preset']:
+            preset = preset[lcExt['preset']]
+    except Exception as e:
+        lcExt = {}
     isChatGPT = preset['model'].startswith("gpt-3.5")
     if isChatGPT:
-        return handle_chat_message_chatgpt(content, config)
+        return handle_chat_message_chatgpt(content, config, preset, lcExt)
     else:
-        return handle_chat_message_gpt3(content, config)
+        return handle_chat_message_gpt3(content, config, preset, lcExt)
 
-def handle_chat_message_gpt3(content, config):
+def handle_chat_message_gpt3(content, config, preset, lcExt):
     openai.api_key = config['openai_api_key']
-    preset = config['preset']
     prompt = preset['prompt']
     now = int(time.time())
     history = {'time':now}
@@ -46,9 +53,8 @@ def handle_chat_message_gpt3(content, config):
         addHistory(redis, historyListKey, history)
     return reply
 
-def handle_chat_message_chatgpt(content, config):
+def handle_chat_message_chatgpt(content, config, preset, lcExt):
     openai.api_key = config['openai_api_key']
-    preset = config['preset']
     messages = preset.get('messages',[])
     now = int(time.time())
     history = {'time':now}
