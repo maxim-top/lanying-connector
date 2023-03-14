@@ -108,7 +108,8 @@ def queryAndSendMessage(data):
                 newConfig['ext'] = data['ext']
                 responseText = service_module.handle_chat_message(content, newConfig)
                 logging.debug(f"responseText:{responseText}")
-                sendMessage(appId, fromUserId, toUserId, responseText)
+                if len(responseText) > 0:
+                    sendMessage(appId, fromUserId, toUserId, responseText)
                 addMsgSentCnt(1)
     except Exception as e:
         logging.exception(e)

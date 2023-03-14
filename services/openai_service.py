@@ -13,11 +13,14 @@ def handle_chat_message(content, config):
     lcExt = {}
     try:
         ext = json.loads(config['ext'])
-        lcExt = ext['lanying-connector']
-        if lcExt['preset']:
-            preset = preset[lcExt['preset']]
+        lcExt = ext['lanying_connector']
+        if lcExt['choose_preset']:
+            preset = preset['presets'][lcExt['choose_preset']]
     except Exception as e:
         lcExt = {}
+    if 'presets' in preset:
+        del preset['presets']
+    logging.debug(f"lanying-connector:ext={json.dumps(lcExt, ensure_ascii=False)}")
     isChatGPT = preset['model'].startswith("gpt-3.5")
     if isChatGPT:
         return handle_chat_message_chatgpt(content, config, preset, lcExt)
@@ -63,6 +66,19 @@ def handle_chat_message_chatgpt(content, config, preset, lcExt):
     toUserId = config['to_user_id']
     historyListKey = historyListChatGPTKey(fromUserId, toUserId)
     redis = lanying_connector.getRedisConnection()
+    if 'clear_history' in lcExt and lcExt['clear_history'] == True:
+        removeAllHistory(redis, historyListKey)
+    if 'add_history_list' in lcExt and lcExt['add_history_list']:
+        customHistoryList = []
+        for customHistory in lcExt['add_history_list']:
+            if customHistory['role'] and customHistory['content']:
+                customHistoryList.append({'role':customHistory['role'], 'content': customHistory['content']})
+        addHistory(redis, historyListKey, {'list':customHistoryList, 'time':now})
+    if 'need_reply' in lcExt and lcExt['need_reply'] == False:
+        return ''
+    if content == '!clear_history':
+        removeAllHistory(redis, historyListKey)
+        return 'history is clear'
     userHistoryList = loadHistoryChatGPT(redis, historyListKey, content, messages, now, preset)
     for userHistory in userHistoryList:
         logging.debug(f'userHistory:{userHistory}')
@@ -114,12 +130,18 @@ def loadHistoryChatGPT(redis, historyListKey, content, messages, now, preset):
             uidHistoryList.append(history)
     res = []
     for history in reversed(uidHistoryList):
-        userMessage = {'role':'user', 'content': history['user']}
-        assistantMessage = {'role':'assistant', 'content': history['assistant']}
-        historySize = calcMessageTokens(userMessage, model) + calcMessageTokens(assistantMessage, model)
+        if 'list' in history:
+            nowHistoryList = history['list']
+        else:
+            userMessage = {'role':'user', 'content': history['user']}
+            assistantMessage = {'role':'assistant', 'content': history['assistant']}
+            nowHistoryList = [userMessage, assistantMessage]
+        historySize = 0
+        for nowHistory in nowHistoryList:
+            historySize += calcMessageTokens(nowHistory, model)
         if nowSize + historySize + completionTokens < MaxTotalTokens:
-            res.append(assistantMessage)
-            res.append(userMessage)
+            for nowHistory in reversed(nowHistoryList):
+                res.append(nowHistory)
             nowSize += historySize
             logging.debug(f'now prompt size:{nowSize}')
         else:
@@ -147,6 +169,10 @@ def getHistoryList(redis, historyListKey):
 def removeHistory(redis, historyListKey, historyStr):
     if redis:
         redis.lrem(historyListKey, 1, historyStr)
+
+def removeAllHistory(redis, historyListKey):
+    if redis:
+        redis.delete(historyListKey)
 
 def calcMessagesTokens(messages, model):
     encoding = tiktoken.encoding_for_model(model)
