@@ -3,9 +3,10 @@ import time
 import logging
 import lanying_connector
 import json
+import tiktoken
 expireSeconds = 86400 * 3
-maxPromptSize = 2000
 maxUserHistoryLen = 20
+MaxTotalTokens = 4000
 
 def handle_chat_message(content, config):
     preset = config['preset']
@@ -32,7 +33,7 @@ def handle_chat_message_gpt3(content, config, preset, lcExt):
     toUserId = config['to_user_id']
     historyListKey = historyListGPT3Key(fromUserId, toUserId)
     redis = lanying_connector.getRedisConnection()
-    historyText = loadHistory(redis, historyListKey, content, preset['prompt'], now)
+    historyText = loadHistory(redis, historyListKey, content, preset['prompt'], now, preset)
     logging.debug(f'historyText:{historyText}')
     if prompt.find('{{LANYING_MESSAGE_CONTENT}}') > 0:
         preset['prompt'] = prompt.replace('{{LANYING_MESSAGE_CONTENT}}', content)
@@ -62,12 +63,13 @@ def handle_chat_message_chatgpt(content, config, preset, lcExt):
     toUserId = config['to_user_id']
     historyListKey = historyListChatGPTKey(fromUserId, toUserId)
     redis = lanying_connector.getRedisConnection()
-    userHistoryList = loadHistoryChatGPT(redis, historyListKey, content, messages, now)
+    userHistoryList = loadHistoryChatGPT(redis, historyListKey, content, messages, now, preset)
     for userHistory in userHistoryList:
         logging.debug(f'userHistory:{userHistory}')
         messages.append(userHistory)
     messages.append({"role": "user", "content": content})
     preset['messages'] = messages
+    calcMessagesTokens(messages, preset['model'])
     response = openai.ChatCompletion.create(**preset)
     logging.debug(f"openai response:{response}")
     reply = response.choices[0].message.content.strip()
@@ -77,7 +79,8 @@ def handle_chat_message_chatgpt(content, config, preset, lcExt):
     addHistory(redis, historyListKey, history)
     return reply
 
-def loadHistory(redis, historyListKey, content, prompt, now):
+def loadHistory(redis, historyListKey, content, prompt, now, preset):
+    maxPromptSize = 3024 - preset.get('max_tokens', 1024)
     uidHistoryList = []
     nowSize = len(content) + len(prompt)
     if redis:
@@ -96,12 +99,13 @@ def loadHistory(redis, historyListKey, content, prompt, now):
             break
     return res
 
-def loadHistoryChatGPT(redis, historyListKey, content, messages, now):
+def loadHistoryChatGPT(redis, historyListKey, content, messages, now, preset):
+    completionTokens = preset.get('max_tokens', 1024)
     uidHistoryList = []
-    messagesSize = 0
-    for message in messages:
-        messagesSize += len(message['role']) + len(message['content'])
-    nowSize = len(content) + messagesSize
+    model = preset['model']
+    messagesSize = calcMessagesTokens(messages, model)
+    askMessage = {"role": "user", "content": content}
+    nowSize = calcMessageTokens(askMessage, model) + messagesSize
     if redis:
         for historyStr in getHistoryList(redis, historyListKey):
             history = json.loads(historyStr)
@@ -110,12 +114,14 @@ def loadHistoryChatGPT(redis, historyListKey, content, messages, now):
             uidHistoryList.append(history)
     res = []
     for history in reversed(uidHistoryList):
-        historySize = len(history['user']) + len(history['assistant'])
-        if nowSize + historySize < maxPromptSize:
-            res.append({'role':'assistant', 'content': history['assistant']})
-            res.append({'role':'user', 'content': history['user']})
+        userMessage = {'role':'user', 'content': history['user']}
+        assistantMessage = {'role':'assistant', 'content': history['assistant']}
+        historySize = calcMessageTokens(userMessage, model) + calcMessageTokens(assistantMessage, model)
+        if nowSize + historySize + completionTokens < MaxTotalTokens:
+            res.append(assistantMessage)
+            res.append(userMessage)
             nowSize += historySize
-            logging.debug(f'resLen:{len(res)}, nowSize:{nowSize}')
+            logging.debug(f'now prompt size:{nowSize}')
         else:
             break
     return reversed(res)
@@ -141,3 +147,25 @@ def getHistoryList(redis, historyListKey):
 def removeHistory(redis, historyListKey, historyStr):
     if redis:
         redis.lrem(historyListKey, 1, historyStr)
+
+def calcMessagesTokens(messages, model):
+    encoding = tiktoken.encoding_for_model(model)
+    num_tokens = 0
+    for message in messages:
+        num_tokens += 4
+        for key, value in message.items():
+            num_tokens += len(encoding.encode(value))
+            if key == "name":
+                num_tokens += -1
+    num_tokens += 2
+    return num_tokens
+
+def calcMessageTokens(message, model):
+    encoding = tiktoken.encoding_for_model(model)
+    num_tokens = 0
+    num_tokens += 4
+    for key, value in message.items():
+        num_tokens += len(encoding.encode(value))
+        if key == "name":
+            num_tokens += -1
+    return num_tokens
