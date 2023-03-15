@@ -14,8 +14,8 @@ def handle_chat_message(content, config):
     try:
         ext = json.loads(config['ext'])
         lcExt = ext['lanying_connector']
-        if lcExt['choose_preset']:
-            preset = preset['presets'][lcExt['choose_preset']]
+        if lcExt['preset_name']:
+            preset = preset['presets'][lcExt['preset_name']]
     except Exception as e:
         lcExt = {}
     if 'presets' in preset:
@@ -66,19 +66,19 @@ def handle_chat_message_chatgpt(content, config, preset, lcExt):
     toUserId = config['to_user_id']
     historyListKey = historyListChatGPTKey(fromUserId, toUserId)
     redis = lanying_connector.getRedisConnection()
-    if 'clear_history' in lcExt and lcExt['clear_history'] == True:
+    if 'reset_prompt' in lcExt and lcExt['reset_prompt'] == True:
         removeAllHistory(redis, historyListKey)
-    if 'add_history_list' in lcExt and lcExt['add_history_list']:
+    if 'prompt_ext' in lcExt and lcExt['prompt_ext']:
         customHistoryList = []
-        for customHistory in lcExt['add_history_list']:
+        for customHistory in lcExt['prompt_ext']:
             if customHistory['role'] and customHistory['content']:
                 customHistoryList.append({'role':customHistory['role'], 'content': customHistory['content']})
         addHistory(redis, historyListKey, {'list':customHistoryList, 'time':now})
     if 'need_reply' in lcExt and lcExt['need_reply'] == False:
         return ''
-    if content == '!clear_history':
+    if content == '#reset_prompt':
         removeAllHistory(redis, historyListKey)
-        return 'history is clear'
+        return 'prompt is reset'
     userHistoryList = loadHistoryChatGPT(redis, historyListKey, content, messages, now, preset)
     for userHistory in userHistoryList:
         logging.debug(f'userHistory:{userHistory}')
