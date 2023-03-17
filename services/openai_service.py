@@ -21,7 +21,7 @@ def handle_chat_message(content, config):
     if 'presets' in preset:
         del preset['presets']
     logging.debug(f"lanying-connector:ext={json.dumps(lcExt, ensure_ascii=False)}")
-    isChatGPT = preset['model'].startswith("gpt-3.5")
+    isChatGPT = preset['model'].startswith("gpt-3.5") or preset['model'].startswith("gpt-4")
     if isChatGPT:
         return handle_chat_message_chatgpt(content, config, preset, lcExt)
     else:
