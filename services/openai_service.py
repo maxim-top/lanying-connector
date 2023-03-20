@@ -175,23 +175,31 @@ def removeAllHistory(redis, historyListKey):
         redis.delete(historyListKey)
 
 def calcMessagesTokens(messages, model):
-    encoding = tiktoken.encoding_for_model(model)
-    num_tokens = 0
-    for message in messages:
+    try:
+        encoding = tiktoken.encoding_for_model(model)
+        num_tokens = 0
+        for message in messages:
+            num_tokens += 4
+            for key, value in message.items():
+                num_tokens += len(encoding.encode(value))
+                if key == "name":
+                    num_tokens += -1
+        num_tokens += 2
+        return num_tokens
+    except Exception as e:
+        logging.exception(e)
+        return MaxTotalTokens
+
+def calcMessageTokens(message, model):
+    try:
+        encoding = tiktoken.encoding_for_model(model)
+        num_tokens = 0
         num_tokens += 4
         for key, value in message.items():
             num_tokens += len(encoding.encode(value))
             if key == "name":
                 num_tokens += -1
-    num_tokens += 2
-    return num_tokens
-
-def calcMessageTokens(message, model):
-    encoding = tiktoken.encoding_for_model(model)
-    num_tokens = 0
-    num_tokens += 4
-    for key, value in message.items():
-        num_tokens += len(encoding.encode(value))
-        if key == "name":
-            num_tokens += -1
-    return num_tokens
+        return num_tokens
+    except Exception as e:
+        logging.exception(e)
+        return MaxTotalTokens
