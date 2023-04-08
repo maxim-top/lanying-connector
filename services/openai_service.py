@@ -4,6 +4,7 @@ import logging
 import lanying_connector
 import json
 import tiktoken
+import lanying_config
 expireSeconds = 86400 * 3
 maxUserHistoryLen = 20
 MaxTotalTokens = 4000
@@ -28,7 +29,7 @@ def handle_chat_message(content, config):
         return handle_chat_message_gpt3(content, config, preset, lcExt)
 
 def handle_chat_message_gpt3(content, config, preset, lcExt):
-    openai.api_key = config['openai_api_key']
+    init_openai_key(config)
     prompt = preset['prompt']
     now = int(time.time())
     history = {'time':now}
@@ -58,7 +59,7 @@ def handle_chat_message_gpt3(content, config, preset, lcExt):
     return reply
 
 def handle_chat_message_chatgpt(content, config, preset, lcExt):
-    openai.api_key = config['openai_api_key']
+    init_openai_key(config)
     messages = preset.get('messages',[])
     now = int(time.time())
     history = {'time':now}
@@ -203,3 +204,11 @@ def calcMessageTokens(message, model):
     except Exception as e:
         logging.exception(e)
         return MaxTotalTokens
+
+def init_openai_key(config):
+    openai_api_key = config['openai_api_key']
+    if 'product_id' in config:
+        DefaultApiKey = lanying_config.get_lanying_connector_default_openai_api_key()
+        if DefaultApiKey:
+            openai_api_key = DefaultApiKey
+    openai.api_key = openai_api_key
