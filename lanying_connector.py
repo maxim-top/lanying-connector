@@ -110,15 +110,17 @@ def queryAndSendMessage(data):
                 newConfig['from_user_id'] = fromUserId
                 newConfig['to_user_id'] = toUserId
                 newConfig['ext'] = data['ext']
+                newConfig['app_id'] = data['appId']
+                newConfig['msg_id'] = data['msgId']
                 responseText = service_module.handle_chat_message(content, newConfig)
                 logging.debug(f"responseText:{responseText}")
                 if len(responseText) > 0:
-                    sendMessage(appId, fromUserId, toUserId, responseText)
+                    sendMessage(appId, toUserId, fromUserId, responseText)
                 addMsgSentCnt(1)
     except Exception as e:
         logging.exception(e)
         message_404 = lanying_config.get_message_404(appId)
-        sendMessage(appId, fromUserId, toUserId, message_404)
+        sendMessage(appId, toUserId, fromUserId, message_404)
         addMsgSentCnt(1)
 
 def sendMessage(appId, fromUserId, toUserId, content):
@@ -128,7 +130,17 @@ def sendMessage(appId, fromUserId, toUserId, content):
     if adminToken:
         sendResponse = requests.post(apiEndpoint + '/message/send',
                                     headers={'app_id': appId, 'access-token': adminToken},
-                                    json={'type':1, 'from_user_id':toUserId,'targets':[fromUserId],'content_type':0, 'content': content, 'config': json.dumps({'antispam_prompt':message_antispam}, ensure_ascii=False)})
+                                    json={'type':1, 'from_user_id':fromUserId,'targets':[toUserId],'content_type':0, 'content': content, 'config': json.dumps({'antispam_prompt':message_antispam}, ensure_ascii=False)})
+        logging.debug(sendResponse)
+
+def sendReadAck(appId, fromUserId, toUserId, relatedMid):
+    adminToken = lanying_config.get_lanying_admin_token(appId)
+    apiEndpoint = lanying_config.get_lanying_api_endpoint(appId)
+    message_antispam = lanying_config.get_message_antispam(appId)
+    if adminToken:
+        sendResponse = requests.post(apiEndpoint + '/message/send',
+                                    headers={'app_id': appId, 'access-token': adminToken},
+                                    json={'type':1, 'from_user_id':fromUserId,'targets':[toUserId],'content_type':9, 'content': '', 'config': json.dumps({'antispam_prompt':message_antispam}, ensure_ascii=False),'related_mid':relatedMid})
         logging.debug(sendResponse)
 
 def getRedisConnection():

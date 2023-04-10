@@ -10,6 +10,7 @@ maxUserHistoryLen = 20
 MaxTotalTokens = 4000
 
 def handle_chat_message(content, config):
+    reply_message_read_ack(config)
     preset = config['preset']
     lcExt = {}
     try:
@@ -212,3 +213,10 @@ def init_openai_key(config):
         if DefaultApiKey:
             openai_api_key = DefaultApiKey
     openai.api_key = openai_api_key
+
+def reply_message_read_ack(config):
+    fromUserId = config['from_user_id']
+    toUserId = config['to_user_id']
+    msgId = config['msg_id']
+    appId = config['app_id']
+    lanying_connector.sendReadAck(appId, toUserId, fromUserId, msgId)
