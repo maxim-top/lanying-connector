@@ -27,5 +27,27 @@
 	"stop": [
 		" Human:",
 		" AI:"
-	]
+	],
+	"presets": {
+		"webapi": {
+			"model": "gpt-3.5-turbo-16k",
+			"messages": [
+				{
+					"role": "system",
+					"content": "LOL\n\n你是一个API文档助手，收到问题后，你需要根据API文档中内容来回复。我会提示你一些文档中的知识片段，请按照知识片段中的内容进行回复，如果没有相关知识可以不回答或者提示重新检索。由于中英文习惯不同，以下术语可以认为是对等的，可以互相替换理解：API和接口。"
+				}
+			],
+			"ext": {
+				"debug": false,
+				"history_msg_count_max": 0,
+				"preset_desc": "Web开发助手",
+				"reference": {
+					"prefix": "\n详情可查看官方文档：\n",
+					"style": "{seq}.{doc_id} {link}",
+					"seperator": "\n",
+					"location": "body"
+				}
+			}
+		}
+	}
 }
