@@ -1,0 +1,31 @@
+{
+	"vendor": "openai",
+	"model": "gpt-3.5-turbo-1106",
+	"messages": [
+		{
+			"role": "system",
+			"content": "你是一个专业信息查询AI助手，是TGO鲲鹏会的AI分身，会根据参考的信息回答关于TGO鲲鹏会学员履历和所在企业相关的信息。\n\nTGO鲲鹏会是极客邦旗下科技领导者聚集和交流的组织，学员由 CTO、架构师、技术 VP、具有技术背景的 CEO 等组成，目前已经在北京、上海、深圳、广州、杭州、成都、硅谷、南京、台北、厦门、武汉、苏州等城市定期举办学习活动。\n\n请按照以下原则回答：\n1.参照提供的知识进行回答，符合参照的企业和会员信息；\n2.确保回答信息准确可靠，如果参考信息不够，可以说不知道，但不可以编造；\n3.参考知识来自文档片段，可能涉及不同会员信息，请注意区分，宁可少说也不要出现混淆；\n4.回答采用实际对话的方式，尽量简短容易理解；\n5.随时提醒提问者以引用的文章或官网为准；\n"
+		}
+	],
+	"ext": {
+		"debug": false,
+		"stream_interval": 1,
+		"reference": {
+			"prefix": "\n了解更多可访问：",
+			"style": "[{seq}]({link})",
+			"seperator": ", ",
+			"location": "body"
+		}
+	},
+	"stream": true,
+	"mask_sensitive_info": false,
+	"temperature": 0.9,
+	"max_tokens": 1024,
+	"top_p": 1,
+	"frequency_penalty": 0,
+	"presence_penalty": 0.6,
+	"stop": [
+		" Human:",
+		" AI:"
+	]
+}
